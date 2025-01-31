@@ -1,0 +1,99 @@
+-- Categories Table
+CREATE TABLE Categories (
+    category_id INT IDENTITY(1,1) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Books Table
+CREATE TABLE Books (
+    book_id INT IDENTITY(1,1) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    isbn VARCHAR(20) NOT NULL UNIQUE,
+    category_id INT NOT NULL,
+    copies_available INT DEFAULT 1 CHECK (copies_available >= 0),
+    CONSTRAINT fk_books_category FOREIGN KEY (category_id) REFERENCES Categories(category_id) ON DELETE CASCADE
+);
+
+-- Members Table
+CREATE TABLE Members (
+    member_id INT IDENTITY(1,1) PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    phone VARCHAR(15) CHECK (phone LIKE '[0-9]%'),
+    membership_date DATETIME DEFAULT GETDATE()
+);
+
+-- Staff Table
+CREATE TABLE Staff (
+    staff_id INT IDENTITY(1,1) PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    role VARCHAR(50) NOT NULL CHECK (role IN ('Admin', 'Librarian', 'Assistant'))
+);
+
+-- Loans Table
+CREATE TABLE Loans (
+    loan_id INT IDENTITY(1,1) PRIMARY KEY,
+    book_id INT NOT NULL,
+    member_id INT NOT NULL,
+    loan_date DATETIME DEFAULT GETDATE(),
+    due_date DATETIME NOT NULL,
+    return_date DATETIME NULL,
+    CONSTRAINT fk_loans_book FOREIGN KEY (book_id) REFERENCES Books(book_id) ON DELETE CASCADE,
+    CONSTRAINT fk_loans_member FOREIGN KEY (member_id) REFERENCES Members(member_id) ON DELETE CASCADE
+);
+
+-- Fines Table
+CREATE TABLE Fines (
+    fine_id INT IDENTITY(1,1) PRIMARY KEY,
+    loan_id INT NOT NULL,
+    fine_amount DECIMAL(10,2) NOT NULL CHECK (fine_amount >= 0),
+    payment_status VARCHAR(10) DEFAULT 'Unpaid' CHECK (payment_status IN ('Paid', 'Unpaid')),
+    CONSTRAINT fk_fines_loan FOREIGN KEY (loan_id) REFERENCES Loans(loan_id) ON DELETE CASCADE
+);
+
+-- Creating Indexes for Faster Queries
+CREATE INDEX idx_members_email ON Members(email);
+CREATE INDEX idx_books_isbn ON Books(isbn);
+CREATE INDEX idx_books_category ON Books(category_id);
+-- Insert Categories
+INSERT INTO Categories (name) VALUES 
+    ('Science Fiction'), 
+    ('History'), 
+    ('Computer Science');
+
+-- Insert Books
+INSERT INTO Books (title, author, isbn, category_id, copies_available) VALUES 
+    ('The Time Machine', 'H.G. Wells', '978-0451528551', 1, 5),
+    ('A Brief History of Time', 'Stephen Hawking', '978-0553380163', 2, 3),
+    ('C++ Programming', 'Bjarne Stroustrup', '978-0321563842', 3, 4);
+
+-- Insert Members
+INSERT INTO Members (first_name, last_name, email, phone) VALUES 
+    ('Alice', 'Johnson', 'alice@example.com', '1234567890'),
+    ('Bob', 'Smith', 'bob@example.com', '0987654321');
+
+-- Insert Loans
+INSERT INTO Loans (book_id, member_id, due_date) VALUES 
+    (1, 1, DATEADD(DAY, 14, GETDATE())), 
+    (2, 2, DATEADD(DAY, 14, GETDATE()));
+
+-- Insert Fines (Only if a book is returned late)
+INSERT INTO Fines (loan_id, fine_amount, payment_status) VALUES 
+    (1, 5.00, 'Unpaid'); 
+    -- View all books
+SELECT * FROM Books;
+
+-- View all members
+SELECT * FROM Members;
+
+-- View all loans
+SELECT * FROM Loans;
+
+-- View pending fines
+SELECT * FROM Fines WHERE payment_status = 'Unpaid';
+
+
